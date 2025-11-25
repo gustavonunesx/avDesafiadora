@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>AlokAki - Locadora</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <div>
+        <h1>AlokAki</h1>
+        <p class="subtitle">Sistema simples de locadora</p>
+      </div>
+    </div>
+
+    <nav class="nav">
+      <button id="btn-filmes" class="nav-btn active">Filmes</button>
+      <button id="btn-novo-filme" class="nav-btn">Novo Filme</button>
+      <button id="btn-nova-locacao" class="nav-btn">Nova Locação</button>
+      <button id="btn-locacoes" class="nav-btn">Locações</button>
+    </nav>
+  </header>
+
+  <main class="container">
+    <!-- Filmes -->
+    <section id="view-filmes" class="view">
+      <h2>Filmes</h2>
+      <div id="filmes-list" class="card-grid"></div>
+    </section>
+
+    <!-- Novo Filme -->
+    <section id="view-novo-filme" class="view hidden">
+      <h2>Novo Filme</h2>
+      <form id="form-filme" class="form">
+        <label>Título
+          <input name="titulo" required />
+        </label>
+        <label>Gênero
+          <input name="genero" />
+        </label>
+        <label>Ano de Lançamento
+          <input name="anoLancamento" type="number" min="1888" />
+        </label>
+        <label>Quantidade Total
+          <input name="quantidadeTotal" type="number" min="1" value="1" required />
+        </label>
+        <button type="submit" class="btn primary">Salvar Filme</button>
+      </form>
+    </section>
+
+    <!-- Nova Locacao -->
+    <section id="view-nova-locacao" class="view hidden">
+      <h2>Registrar Locação</h2>
+      <form id="form-locacao" class="form">
+        <label>Filme
+          <select name="idFilme" id="select-filme" required></select>
+        </label>
+        <label>Data Locação
+          <input name="dataLocacao" type="date" required />
+        </label>
+        <label>Prazo (dias)
+          <input name="prazoDias" type="number" min="1" value="3" required />
+        </label>
+        <label>Valor diária (R$)
+          <input name="valorDiaria" type="number" min="0" step="0.01" value="5.00" required />
+        </label>
+        <button type="submit" class="btn primary">Registrar Locação</button>
+      </form>
+    </section>
+
+    <!-- Locações -->
+    <section id="view-locacoes" class="view hidden">
+      <h2>Locações</h2>
+      <div id="locacoes-list" class="card-list"></div>
+    </section>
+
+    <div id="toast" class="toast hidden"></div>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
