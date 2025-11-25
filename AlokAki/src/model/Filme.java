@@ -19,7 +19,6 @@ public class Filme {
         this.quantidadeDisponivel = quantidadeDisponivel;
     }
 
-    // GETTERS E SETTERS
     public int getId() { return id; }
     public void setId(int id) { this.id = id; }
 
@@ -38,4 +37,3 @@ public class Filme {
     public int getQuantidadeDisponivel() { return quantidadeDisponivel; }
     public void setQuantidadeDisponivel(int quantidadeDisponivel) { this.quantidadeDisponivel = quantidadeDisponivel; }
 }
-    

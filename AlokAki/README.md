@@ -1,18 +1,42 @@
-## Getting Started
+MovieTime - API minimal para locadora (Java 17 + Spark + JDBC)
 
-Welcome to the VS Code Java world. Here is a guideline to help you get started to write Java code in Visual Studio Code.
+1) Criar banco
+   - Execute o script sql/movietime_schema.sql no seu MySQL.
 
-## Folder Structure
+2) Configurar conexão
+   - Abra factory/ConnectionFactory.java e altere USER e PASS para suas credenciais.
 
-The workspace contains two folders by default, where:
+3) Build e Run
+   - Usando Maven:
+     mvn clean package
+     mvn exec:java -Dexec.mainClass="App"
+   - Ou rode a classe App diretamente da sua IDE.
 
-- `src`: the folder to maintain sources
-- `lib`: the folder to maintain dependencies
+4) Testes rápidos (curl)
 
-Meanwhile, the compiled output files will be generated in the `bin` folder by default.
+- Criar filme:
+curl -X POST http://localhost:4567/filmes -H "Content-Type: application/json" -d '{
+  "titulo":"Matrix",
+  "genero":"Sci-Fi",
+  "anoLancamento":1999,
+  "quantidadeTotal":3,
+  "quantidadeDisponivel":3
+}'
 
-> If you want to customize the folder structure, open `.vscode/settings.json` and update the related settings there.
+- Listar filmes:
+curl http://localhost:4567/filmes
 
-## Dependency Management
+- Criar locação:
+curl -X POST http://localhost:4567/locacoes -H "Content-Type: application/json" -d '{
+  "idFilme":1,
+  "nomeCliente":"João",
+  "dataLocacao":"2025-11-24",
+  "valorDiaria":5.0
+}'
 
-The `JAVA PROJECTS` view allows you to manage your dependencies. More details can be found [here](https://github.com/microsoft/vscode-java-dependency#manage-dependencies).
+- Devolver (registra devolução com data atual):
+curl -X PUT http://localhost:4567/locacoes/1/devolver
+
+Observações:
+- Datas no formato ISO: yyyy-MM-dd
+- Endpoints minimalistas para teste. Validações básicas implementadas.
