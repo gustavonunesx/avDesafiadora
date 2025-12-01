@@ -4,6 +4,8 @@ import static spark.Spark.after;
 import static spark.Spark.delete;
 import static spark.Spark.get;
 import static spark.Spark.post;
+import static spark.Spark.before;
+import static spark.Spark.options; 
 import static spark.Spark.put;
 
 import java.time.LocalDate;
@@ -30,6 +32,26 @@ public class ApiLocadora {
 
         after((req, res) -> res.type(APPLICATION_JSON));
 
+        // 1. Configuração de CORS para permitir o frontend (http://127.0.0.1:5500)
+        options("/*", (request, response) -> {
+            String accessControlRequestHeaders = request.headers("Access-Control-Request-Headers");
+            if (accessControlRequestHeaders != null) {
+                response.header("Access-Control-Allow-Headers", accessControlRequestHeaders);
+            }
+            String accessControlRequestMethod = request.headers("Access-Control-Request-Method");
+            if (accessControlRequestMethod != null) {
+                response.header("Access-Control-Allow-Methods", accessControlRequestMethod);
+            }
+            // Permite todas as origens (ideal para desenvolvimento local)
+            response.header("Access-Control-Allow-Origin", "*"); 
+            return "ok";
+        });
+        
+        // 2. Define o Content-Type como JSON e adiciona o header de permissão para todas as respostas
+        before((request, response) -> {
+            response.header("Access-Control-Allow-Origin", "*");
+            response.header("Content-Type", APPLICATION_JSON);
+        });
 
         // ------------------- FILMES -------------------
 
