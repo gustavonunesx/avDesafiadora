@@ -32,7 +32,7 @@ public class ApiLocadora {
 
         after((req, res) -> res.type(APPLICATION_JSON));
 
-        // 1. Configuração de CORS para permitir o frontend (http://127.0.0.1:5500)
+       // 1. Lida com a requisição OPTIONS (Preflight)
         options("/*", (request, response) -> {
             String accessControlRequestHeaders = request.headers("Access-Control-Request-Headers");
             if (accessControlRequestHeaders != null) {
@@ -42,15 +42,16 @@ public class ApiLocadora {
             if (accessControlRequestMethod != null) {
                 response.header("Access-Control-Allow-Methods", accessControlRequestMethod);
             }
-            // Permite todas as origens (ideal para desenvolvimento local)
-            response.header("Access-Control-Allow-Origin", "*"); 
+            // Define o Access-Control-Allow-Origin: * para o preflight
+            response.header("Access-Control-Allow-Origin", "*");
             return "ok";
         });
-        
-        // 2. Define o Content-Type como JSON e adiciona o header de permissão para todas as respostas
-        before((request, response) -> {
-            response.header("Access-Control-Allow-Origin", "*");
-            response.header("Content-Type", APPLICATION_JSON);
+
+        // 2. Define o Content-Type e o Access-Control-Allow-Origin para as respostas
+        after((req, res) -> {
+            res.type(APPLICATION_JSON);
+            // Define o Access-Control-Allow-Origin: * para as respostas normais
+            res.header("Access-Control-Allow-Origin", "*"); 
         });
 
         // ------------------- FILMES -------------------
