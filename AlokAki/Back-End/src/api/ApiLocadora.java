@@ -1,13 +1,6 @@
 package api;
 
-import static spark.Spark.after;
-import static spark.Spark.delete;
-import static spark.Spark.get;
-import static spark.Spark.post;
-import static spark.Spark.before;
-import static spark.Spark.options; 
-import static spark.Spark.put;
-
+import static spark.Spark.*;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
@@ -25,36 +18,29 @@ public class ApiLocadora {
     private static final FilmeDAO filmeDAO = new FilmeDAO();
     private static final LocacaoDAO locacaoDAO = new LocacaoDAO();
     private static final Gson gson = new Gson();
-
     private static final String APPLICATION_JSON = "application/json";
 
     public static void iniciarRotas() {
 
+        // ===============================
+        // CORS — CONFIGURAÇÃO CORRETA
+        // ===============================
+        before((req, res) -> {
+            res.header("Access-Control-Allow-Origin", "*");
+            res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+            res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
+        });
+
+        options("/*", (req, res) -> {
+            res.status(200);
+            return "OK";
+        });
+
         after((req, res) -> res.type(APPLICATION_JSON));
 
-       // 1. Lida com a requisição OPTIONS (Preflight)
-        options("/*", (request, response) -> {
-            String accessControlRequestHeaders = request.headers("Access-Control-Request-Headers");
-            if (accessControlRequestHeaders != null) {
-                response.header("Access-Control-Allow-Headers", accessControlRequestHeaders);
-            }
-            String accessControlRequestMethod = request.headers("Access-Control-Request-Method");
-            if (accessControlRequestMethod != null) {
-                response.header("Access-Control-Allow-Methods", accessControlRequestMethod);
-            }
-            // Define o Access-Control-Allow-Origin: * para o preflight
-            response.header("Access-Control-Allow-Origin", "*");
-            return "ok";
-        });
-
-        // 2. Define o Content-Type e o Access-Control-Allow-Origin para as respostas
-        after((req, res) -> {
-            res.type(APPLICATION_JSON);
-            // Define o Access-Control-Allow-Origin: * para as respostas normais
-            res.header("Access-Control-Allow-Origin", "*"); 
-        });
-
-        // ------------------- FILMES -------------------
+        // ===============================
+        // ROTAS — FILMES
+        // ===============================
 
         get("/filmes", (req, res) -> gson.toJson(filmeDAO.buscarTodos()));
 
@@ -88,7 +74,6 @@ public class ApiLocadora {
             Filme atualizado = gson.fromJson(req.body(), Filme.class);
             atualizado.setId(id);
             filmeDAO.atualizar(atualizado);
-
             return gson.toJson(atualizado);
         });
 
@@ -105,8 +90,9 @@ public class ApiLocadora {
             return "";
         });
 
-
-        // ------------------- LOCAÇÕES -------------------
+        // ===============================
+        // ROTAS — LOCAÇÕES
+        // ===============================
 
         get("/locacoes", (req, res) -> gson.toJson(locacaoDAO.buscarTodas()));
 
@@ -122,28 +108,56 @@ public class ApiLocadora {
             return gson.toJson(loc);
         });
 
-
         post("/locacoes", (req, res) -> {
-            Locacao nova = gson.fromJson(req.body(), Locacao.class);
+            Map<String, Object> body = gson.fromJson(req.body(), Map.class);
 
-            Filme f = filmeDAO.buscarPorId(nova.getIdFilme());
+            // Validação correta
+            if (body.get("idFilme") == null ||
+                    body.get("idCliente") == null ||
+                    body.get("dataLocacao") == null ||
+                    body.get("prazoDias") == null ||
+                    body.get("valorDiaria") == null) {
 
-            if (f == null || f.getQuantidadeDisponivel() <= 0) {
+                res.status(400);
+                return "{\"erro\":\"Campos obrigatórios faltando\"}";
+            }
+
+            int idFilme = ((Double) body.get("idFilme")).intValue();
+            int idCliente = ((Double) body.get("idCliente")).intValue();
+
+            LocalDate dataLocacao = LocalDate.parse((String) body.get("dataLocacao"));
+            int prazo = ((Double) body.get("prazoDias")).intValue();
+            LocalDate dataPrevista = dataLocacao.plusDays(prazo);
+
+            double valorDiaria = (Double) body.get("valorDiaria");
+
+            Filme filme = filmeDAO.buscarPorId(idFilme);
+
+            if (filme == null || filme.getQuantidadeDisponivel() <= 0) {
                 res.status(400);
                 return "{\"erro\":\"Filme indisponível\"}";
             }
 
-            filmeDAO.atualizarQuantidade(f.getId(), f.getQuantidadeDisponivel() - 1);
+            Locacao nova = new Locacao();
+            nova.setIdFilme(idFilme);
+            nova.setIdCliente(idCliente);
+            nova.setDataLocacao(dataLocacao);
+            nova.setDataPrevistaDevolucao(dataPrevista);
+            nova.setDataDevolucao(null);
+            nova.setStatus("ATIVA");
+            nova.setValorDiaria(valorDiaria);
 
+            // Atualiza estoque
+            filmeDAO.atualizarQuantidade(idFilme, filme.getQuantidadeDisponivel() - 1);
+
+            // Salva no banco
             locacaoDAO.inserir(nova);
-            res.status(201);
 
+            res.status(201);
             return gson.toJson(nova);
         });
 
-
         put("/locacoes/:id/devolver", (req, res) -> {
-
             int idLoc = Integer.parseInt(req.params(":id"));
             Locacao loc = locacaoDAO.buscarPorId(idLoc);
 
@@ -177,7 +191,6 @@ public class ApiLocadora {
             return gson.toJson(resposta);
         });
 
-
         delete("/locacoes/:id", (req, res) -> {
             int id = Integer.parseInt(req.params(":id"));
 
@@ -191,7 +204,6 @@ public class ApiLocadora {
             return "";
         });
 
-
-        System.out.println("Rotas carregadas!");
+        System.out.println("Rotas carregadas com sucesso!");
     }
 }

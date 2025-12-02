@@ -17,13 +17,18 @@ const btnNovaLocacao = $('#btn-nova-locacao');
 const btnLocacoes = $('#btn-locacoes');
 
 const toastEl = $('#toast');
-function toast(msg, ms=2500){ toastEl.textContent = msg; toastEl.classList.remove('hidden'); setTimeout(()=>toastEl.classList.add('hidden'), ms); }
+function toast(msg, ms=2500){
+  toastEl.textContent = msg;
+  toastEl.classList.remove('hidden');
+  setTimeout(()=>toastEl.classList.add('hidden'), ms);
+}
 
 // Navegação simples
 function show(view){
   Object.values(views).forEach(v => v.classList.add('hidden'));
   view.classList.remove('hidden');
   $$('.nav-btn').forEach(b => b.classList.remove('active'));
+
   if(view === views.filmes) btnFilmes.classList.add('active');
   if(view === views.novoFilme) btnNovoFilme.classList.add('active');
   if(view === views.novaLocacao) btnNovaLocacao.classList.add('active');
@@ -42,8 +47,9 @@ async function loadFilmes(){
   list.innerHTML = '<em>Carregando...</em>';
   try {
     const res = await fetch(`${API_BASE}/filmes`);
-    const filmes = await res.json();
+    let filmes = await res.json();
     if(!Array.isArray(filmes)) filmes = [];
+
     list.innerHTML = filmes.map(f => `
       <div class="card">
         <h3>${escapeHtml(f.titulo)}</h3>
@@ -74,13 +80,37 @@ function preencherLocacao(id, titulo){
 
 async function loadFilmesIntoSelect(){
   const sel = $('#select-filme');
+  const info = $('#qtd-filme-info');
+
   sel.innerHTML = '<option>Carregando...</option>';
+  info.textContent = '';
+
   try {
     const res = await fetch(`${API_BASE}/filmes`);
-    const filmes = await res.json();
-    sel.innerHTML = filmes.map(f => `<option value="${f.id}">${escapeHtml(f.titulo)} (${f.quantidadeDisponivel})</option>`).join('');
+    let filmes = await res.json();
+    if(!Array.isArray(filmes)) filmes = [];
+
+    sel.innerHTML = filmes.map(f => 
+      `<option value="${f.id}" data-qtd="${f.quantidadeDisponivel}">
+         ${escapeHtml(f.titulo)} — Disponíveis: ${f.quantidadeDisponivel}
+       </option>`
+    ).join('');
+
+    // Exibir quantidade do primeiro filme automaticamente
+    if(filmes.length > 0){
+      info.textContent = `Disponíveis: ${filmes[0].quantidadeDisponivel}`;
+    }
+
+    // Atualizar ao trocar o filme
+    sel.onchange = () => {
+      const opt = sel.options[sel.selectedIndex];
+      const qtd = opt.getAttribute("data-qtd");
+      info.textContent = `Disponíveis: ${qtd}`;
+    };
+
   } catch(e){
     sel.innerHTML = '<option value="">Erro ao carregar</option>';
+    info.textContent = '';
   }
 }
 
@@ -88,6 +118,7 @@ async function loadFilmesIntoSelect(){
 $('#form-filme').addEventListener('submit', async (ev)=>{
   ev.preventDefault();
   const form = ev.target;
+
   const data = {
     titulo: form.titulo.value.trim(),
     genero: form.genero.value.trim(),
@@ -95,33 +126,50 @@ $('#form-filme').addEventListener('submit', async (ev)=>{
     quantidadeTotal: parseInt(form.quantidadeTotal.value) || 1,
     quantidadeDisponivel: parseInt(form.quantidadeTotal.value) || 1
   };
+
   try {
     const res = await fetch(`${API_BASE}/filmes`, {
       method: 'POST',
       headers: {'Content-Type':'application/json'},
       body: JSON.stringify(data)
     });
-    if(res.status === 201){ form.reset(); toast('Filme criado'); loadFilmes(); show(views.filmes); }
-    else { const j = await res.text(); toast('Erro ao criar'); console.error(j); }
-  } catch(err){ console.error(err); toast('Erro de rede'); }
+
+    if(res.status === 201){
+      form.reset();
+      toast('Filme criado');
+      loadFilmes();
+      show(views.filmes);
+    } else {
+      const j = await res.text();
+      toast('Erro ao criar');
+      console.error(j);
+    }
+  } catch(err){
+    console.error(err);
+    toast('Erro de rede');
+  }
 });
 
 // FORM criar locacao
 $('#form-locacao').addEventListener('submit', async (ev)=>{
   ev.preventDefault();
   const form = ev.target;
+
   const idFilme = parseInt(form.idFilme.value);
+  const idCliente = parseInt(form.idCliente.value); // 🟢 Agora incluindo o cliente
   const dataLocacao = form.dataLocacao.value;
   const prazoDias = parseInt(form.prazoDias.value) || 3;
-  const valorDiaria = parseFloat(form.valorDiaria.value) || 0;
 
-  // calcular dataPrevistaDevolucao simples: +prazoDias
+  // 🟢 Valor fixo
+  const valorDiaria = 5.00;
+
   const dt = new Date(dataLocacao);
   dt.setDate(dt.getDate() + prazoDias);
   const dataPrevista = dt.toISOString().slice(0,10);
 
   const payload = {
     idFilme,
+    idCliente, // 🟢 Adicionando cliente
     dataLocacao,
     dataPrevistaDevolucao: dataPrevista,
     dataDevolucao: null,
@@ -135,6 +183,7 @@ $('#form-locacao').addEventListener('submit', async (ev)=>{
       headers: {'Content-Type':'application/json'},
       body: JSON.stringify(payload)
     });
+
     if(res.status === 201){
       toast('Locação registrada');
       form.reset();
@@ -145,7 +194,10 @@ $('#form-locacao').addEventListener('submit', async (ev)=>{
       console.error(txt);
       toast('Erro ao registrar locação');
     }
-  } catch(e){ console.error(e); toast('Erro de rede'); }
+  } catch(e){
+    console.error(e);
+    toast('Erro de rede');
+  }
 });
 
 // LISTAR LOCAÇÕES
@@ -154,8 +206,9 @@ async function loadLocacoes(){
   box.innerHTML = '<em>Carregando...</em>';
   try {
     const res = await fetch(`${API_BASE}/locacoes`);
-    const locs = await res.json();
+    let locs = await res.json();
     if(!Array.isArray(locs)) locs = [];
+
     box.innerHTML = locs.map(l => `
       <div class="locacao-card">
         <div class="loc-info">
@@ -166,11 +219,17 @@ async function loadLocacoes(){
         </div>
         <div>
           <div style="text-align:right;color:var(--muted);">R$ ${Number(l.valorDiaria).toFixed(2)}</div>
-          ${l.status !== 'FINALIZADA' ? `<button class="btn" onclick="devolver(${l.id})">Devolver</button>` : `<span class="badge">FINALIZADA</span>`}
+          ${l.status !== 'FINALIZADA'
+            ? `<button class="btn" onclick="devolver(${l.id})">Devolver</button>`
+            : `<span class="badge">FINALIZADA</span>`
+          }
         </div>
       </div>
     `).join('');
-  } catch(e){ box.innerHTML = '<div>Erro ao carregar</div>'; console.error(e); }
+  } catch(e){
+    box.innerHTML = '<div>Erro ao carregar</div>';
+    console.error(e);
+  }
 }
 
 // devolver locação (usa data atual)
@@ -178,15 +237,25 @@ async function devolver(id){
   try {
     const res = await fetch(`${API_BASE}/locacoes/${id}/devolver`, { method: 'PUT' });
     const data = await res.json();
+
     toast(`Devolvido — multa R$ ${Number(data.multa || 0).toFixed(2)}`);
     loadLocacoes();
     loadFilmes();
-  } catch(e){ console.error(e); toast('Erro ao devolver'); }
+  } catch(e){
+    console.error(e);
+    toast('Erro ao devolver');
+  }
 }
 
 // helpers
-function escapeHtml(s){ if(!s) return ''; return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-function escapeJs(s){ return (s||'').replace(/'/g,"\\'").replace(/"/g,'\"'); }
+function escapeHtml(s){
+  if(!s) return '';
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function escapeJs(s){
+  return (s || '').replace(/'/g,"\\'").replace(/"/g,'\"');
+}
 
 // inicializa
 show(views.filmes);
