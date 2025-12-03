@@ -1,281 +1,156 @@
-// API base (ajuste se a sua API estiver em outra porta)
-const API_BASE = 'http://localhost:4567';
+const API = "http://localhost:4567";
 
-const $ = sel => document.querySelector(sel);
-const $$ = sel => document.querySelectorAll(sel);
+// --- Atalhos ---
+const $ = (sel) => document.querySelector(sel);
+const $$ = (sel) => document.querySelectorAll(sel);
 
-const views = {
-  filmes: $('#view-filmes'),
-  novoFilme: $('#view-novo-filme'),
-  novaLocacao: $('#view-nova-locacao'),
-  locacoes: $('#view-locacoes')
+// --- NAV ---
+$$(".nav-btn").forEach(btn => {
+  btn.onclick = () => {
+    $$(".nav-btn").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+
+    const view = btn.dataset.view;
+    $$(".view").forEach(v => v.classList.add("hidden"));
+    $("#" + view).classList.remove("hidden");
+  };
+});
+
+// --- TOAST ---
+function toast(msg) {
+  const t = $("#toast");
+  t.textContent = msg;
+  t.classList.remove("hidden");
+  setTimeout(() => t.classList.add("hidden"), 2500);
+}
+
+// --- LISTAR FILMES ---
+async function carregarFilmes() {
+  const res = await fetch(`${API}/filmes`);
+  const filmes = await res.json();
+
+  const list = $("#filmes-list");
+  list.innerHTML = "";
+
+  filmes.forEach(f => {
+    const card = document.createElement("div");
+    card.className = "card";
+    card.innerHTML = `
+      <h3>${f.titulo}</h3>
+      <p>${f.genero}</p>
+      <p>Ano: ${f.anoLancamento}</p>
+      <p>Disponíveis: ${f.quantidadeDisponivel}</p>
+    `;
+    list.appendChild(card);
+  });
+
+  // preencher select
+  const sel = $("#select-filme");
+  sel.innerHTML = filmes.map(f =>
+    `<option value="${f.id}">${f.titulo} — Disponíveis: ${f.quantidadeDisponivel}</option>`
+  ).join("");
+}
+
+// --- CADASTRAR FILME ---
+$("#form-filme").onsubmit = async (e) => {
+  e.preventDefault();
+
+  const data = Object.fromEntries(new FormData(e.target));
+
+  const res = await fetch(`${API}/filmes`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data)
+  });
+
+  if (res.ok) {
+    toast("Filme cadastrado!");
+    e.target.reset();
+    carregarFilmes();
+  } else {
+    toast("Erro ao cadastrar filme.");
+  }
 };
 
-const btnFilmes = $('#btn-filmes');
-const btnNovoFilme = $('#btn-novo-filme');
-const btnNovaLocacao = $('#btn-nova-locacao');
-const btnLocacoes = $('#btn-locacoes');
+// --- REGISTRAR LOCAÇÃO (C/ CRIAÇÃO DE CLIENTE) ---
+$("#form-locacao").onsubmit = async (e) => {
+  e.preventDefault();
 
-const toastEl = $('#toast');
-function toast(msg, ms=2500){
-  toastEl.textContent = msg;
-  toastEl.classList.remove('hidden');
-  setTimeout(()=>toastEl.classList.add('hidden'), ms);
-}
+  const idFilme = $("#select-filme").value;
+  const nome = $("#cliente-nome").value.trim();
+  const telefone = $("#cliente-telefone").value.trim();
+  const dataLocacao = $("#data-locacao").value;
+  const prazo = $("#prazo").value;
+  const valor = $("#valor-diaria").value;
 
-// Navegação simples
-function show(view){
-  Object.values(views).forEach(v => v.classList.add('hidden'));
-  view.classList.remove('hidden');
-  $$('.nav-btn').forEach(b => b.classList.remove('active'));
-
-  if(view === views.filmes) btnFilmes.classList.add('active');
-  if(view === views.novoFilme) btnNovoFilme.classList.add('active');
-  if(view === views.novaLocacao) btnNovaLocacao.classList.add('active');
-  if(view === views.locacoes) btnLocacoes.classList.add('active');
-}
-
-// Eventos nav
-btnFilmes.onclick = () => { show(views.filmes); loadFilmes(); };
-btnNovoFilme.onclick = () => { show(views.novoFilme); };
-btnNovaLocacao.onclick = () => { show(views.novaLocacao); loadFilmesIntoSelect(); loadClientesIntoSelect(); };
-btnLocacoes.onclick = () => { show(views.locacoes); loadLocacoes(); };
-
-// FILMES
-async function loadFilmes(){
-  const list = $('#filmes-list');
-  list.innerHTML = '<em>Carregando...</em>';
-  try {
-    const res = await fetch(`${API_BASE}/filmes`);
-    let filmes = await res.json();
-    if(!Array.isArray(filmes)) filmes = [];
-
-    list.innerHTML = filmes.map(f => `
-      <div class="card">
-        <h3>${escapeHtml(f.titulo)}</h3>
-        <p>${escapeHtml(f.genero)} • ${f.anoLancamento || ''}</p>
-        <div class="meta">
-          <span class="badge">Disponível: ${f.quantidadeDisponivel}</span>
-          <div>
-            <button class="btn" onclick="preencherLocacao(${f.id}, '${escapeJs(f.titulo)}')">Alugar</button>
-          </div>
-        </div>
-      </div>
-    `).join('');
-  } catch(err){
-    list.innerHTML = '<span class="muted">Erro ao carregar filmes</span>';
-    console.error(err);
+  if (!nome || !telefone) {
+    toast("Preencha nome e telefone!");
+    return;
   }
-}
 
-// preenche select / ou abre form de locacao com filme
-function preencherLocacao(id, titulo){
-  show(views.novaLocacao);
-  loadFilmesIntoSelect().then(()=>{
-    const sel = $('#select-filme');
-    sel.value = id;
+  // 1) Criar cliente
+  const respCliente = await fetch(`${API}/clientes`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      nome,
+      telefone,
+      email: ""
+    })
   });
-  toast(`Preparando locação para "${titulo}"`);
-}
 
-// Carregar os filmes no select
-async function loadFilmesIntoSelect(){
-  const sel = $('#select-filme');
-  const info = $('#qtd-filme-info');
-
-  sel.innerHTML = '<option>Carregando...</option>';
-  info.textContent = '';
-
-  try {
-    const res = await fetch(`${API_BASE}/filmes`);
-    let filmes = await res.json();
-    if (!Array.isArray(filmes)) filmes = [];
-
-    sel.innerHTML = filmes.map(f => 
-      `<option value="${f.id}" data-qtd="${f.quantidadeDisponivel}">
-         ${escapeHtml(f.titulo)} — Disponíveis: ${f.quantidadeDisponivel}
-       </option>`
-    ).join('');
-
-    // Exibir quantidade do primeiro filme automaticamente
-    if (filmes.length > 0) {
-      info.textContent = `Disponíveis: ${filmes[0].quantidadeDisponivel}`;
-    }
-
-    // Atualizar ao trocar o filme
-    sel.onchange = () => {
-      const opt = sel.options[sel.selectedIndex];
-      const qtd = opt.getAttribute("data-qtd");
-      info.textContent = `Disponíveis: ${qtd}`;
-    };
-
-  } catch(e){
-    sel.innerHTML = '<option value="">Erro ao carregar</option>';
-    info.textContent = '';
+  if (!respCliente.ok) {
+    toast("Erro ao cadastrar cliente.");
+    return;
   }
-}
 
-// Carregar os clientes no select
-async function loadClientesIntoSelect() {
-  const sel = $('#select-cliente');
+  const cliente = await respCliente.json();
+  const idCliente = cliente.id;
 
-  try {
-    const res = await fetch(`${API_BASE}/clientes`); // Supondo que sua API tenha essa rota
-    let clientes = await res.json();
-    if (!Array.isArray(clientes)) clientes = [];
+  // 2) Criar locação
+  const respLocacao = await fetch(`${API}/locacoes`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      idCliente,
+      idFilme,
+      dataLocacao,
+      prazo,
+      valor
+    })
+  });
 
-    // Preenche a lista de clientes
-    sel.innerHTML = clientes.map(c => 
-      `<option value="${c.id}">${escapeHtml(c.nome)}</option>`
-    ).join('');
-  } catch (e) {
-    sel.innerHTML = '<option value="">Erro ao carregar clientes</option>';
+  if (!respLocacao.ok) {
+    toast("Erro ao registrar locação.");
+    return;
   }
+
+  toast("Locação registrada com sucesso!");
+  e.target.reset();
+  carregarLocacoes();
+};
+
+// --- LISTAR LOCAÇÕES ---
+async function carregarLocacoes() {
+  const resp = await fetch(`${API}/locacoes`);
+  const locs = await resp.json();
+
+  const list = $("#locacoes-list");
+  list.innerHTML = "";
+
+  locs.forEach(l => {
+    const div = document.createElement("div");
+    div.className = "card";
+    div.innerHTML = `
+      <h3>Cliente: ${l.cliente.nome}</h3>
+      <p>Filme: ${l.filme.titulo}</p>
+      <p>Data: ${l.dataLocacao}</p>
+      <p>Prazo: ${l.prazoDias} dias</p>
+    `;
+    list.appendChild(div);
+  });
 }
 
-// FORM criar filme
-$('#form-filme').addEventListener('submit', async (ev)=> {
-  ev.preventDefault();
-  const form = ev.target;
-
-  const data = {
-    titulo: form.titulo.value.trim(),
-    genero: form.genero.value.trim(),
-    anoLancamento: parseInt(form.anoLancamento.value) || null,
-    quantidadeTotal: parseInt(form.quantidadeTotal.value) || 1,
-    quantidadeDisponivel: parseInt(form.quantidadeTotal.value) || 1
-  };
-
-  try {
-    const res = await fetch(`${API_BASE}/filmes`, {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify(data)
-    });
-
-    if(res.status === 201){
-      form.reset();
-      toast('Filme criado');
-      loadFilmes();
-      show(views.filmes);
-    } else {
-      const j = await res.text();
-      toast('Erro ao criar');
-      console.error(j);
-    }
-  } catch(err){
-    console.error(err);
-    toast('Erro de rede');
-  }
-});
-
-// FORM criar locacao
-$('#form-locacao').addEventListener('submit', async (ev) => {
-  ev.preventDefault();
-  const form = ev.target;
-
-  const idFilme = parseInt(form.idFilme.value);
-  const idCliente = parseInt(form.idCliente.value); // 🟢 Agora incluindo o cliente
-  const dataLocacao = form.dataLocacao.value;
-  const prazoDias = parseInt(form.prazoDias.value) || 3;
-
-  // 🟢 Valor fixo
-  const valorDiaria = 5.00;
-
-  const dt = new Date(dataLocacao);
-  dt.setDate(dt.getDate() + prazoDias);
-  const dataPrevista = dt.toISOString().slice(0, 10);
-
-  const payload = {
-    idFilme,
-    idCliente, // 🟢 Adicionando cliente
-    dataLocacao,
-    dataPrevistaDevolucao: dataPrevista,
-    dataDevolucao: null,
-    status: "ATIVA",
-    valorDiaria
-  };
-
-  try {
-    const res = await fetch(`${API_BASE}/locacoes`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
-
-    if (res.status === 201) {
-      toast('Locação registrada');
-      form.reset();
-      show(views.locacoes);
-      loadLocacoes();
-    } else {
-      const txt = await res.text();
-      console.error(txt);
-      toast('Erro ao registrar locação');
-    }
-  } catch (e) {
-    console.error(e);
-    toast('Erro de rede');
-  }
-});
-
-// LISTAR LOCAÇÕES
-async function loadLocacoes() {
-  const box = $('#locacoes-list');
-  box.innerHTML = '<em>Carregando...</em>';
-  try {
-    const res = await fetch(`${API_BASE}/locacoes`);
-    let locs = await res.json();
-    if (!Array.isArray(locs)) locs = [];
-
-    box.innerHTML = locs.map(l => `
-      <div class="locacao-card">
-        <div class="loc-info">
-          <div>
-            <div class="title">#${l.id} — Filme ID: ${l.idFilme}</div>
-            <div class="loc-meta">Locado: ${l.dataLocacao} • Prevista: ${l.dataPrevistaDevolucao} • Data devolução: ${l.dataDevolucao || '—'}</div>
-          </div>
-        </div>
-        <div>
-          <div style="text-align:right;color:var(--muted);">R$ ${Number(l.valorDiaria).toFixed(2)}</div>
-          ${l.status !== 'FINALIZADA'
-            ? `<button class="btn" onclick="devolver(${l.id})">Devolver</button>`
-            : `<span class="badge">FINALIZADA</span>`
-          }
-        </div>
-      </div>
-    `).join('');
-  } catch (e) {
-    box.innerHTML = '<div>Erro ao carregar</div>';
-    console.error(e);
-  }
-}
-
-// devolver locação (usa data atual)
-async function devolver(id) {
-  try {
-    const res = await fetch(`${API_BASE}/locacoes/${id}/devolver`, { method: 'PUT' });
-    const data = await res.json();
-
-    toast(`Devolvido — multa R$ ${Number(data.multa || 0).toFixed(2)}`);
-    loadLocacoes();
-    loadFilmes();
-  } catch (e) {
-    console.error(e);
-    toast('Erro ao devolver');
-  }
-}
-
-// helpers
-function escapeHtml(s) {
-  if (!s) return '';
-  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-}
-
-function escapeJs(s) {
-  return (s || '').replace(/'/g, "\\'").replace(/"/g, '\"');
-}
-
-// inicializa
-show(views.filmes);
-loadFilmes();
+// carregar dados iniciais
+carregarFilmes();
+carregarLocacoes();

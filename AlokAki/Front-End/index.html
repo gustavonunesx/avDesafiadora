@@ -6,6 +6,7 @@
   <title>AlokAki - Locadora</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
+
 <body>
   <header class="topbar">
     <div class="brand">
@@ -16,92 +17,83 @@
     </div>
 
     <nav class="nav">
-      <button id="btn-filmes" class="nav-btn active">Filmes</button>
-      <button id="btn-novo-filme" class="nav-btn">Novo Filme</button>
-      <button id="btn-nova-locacao" class="nav-btn">Nova Locação</button>
-      <button id="btn-locacoes" class="nav-btn">Locações</button>
+      <button class="nav-btn active" data-view="view-filmes">Filmes</button>
+      <button class="nav-btn" data-view="view-novo-filme">Novo Filme</button>
+      <button class="nav-btn" data-view="view-nova-locacao">Nova Locação</button>
+      <button class="nav-btn" data-view="view-locacoes">Locações</button>
     </nav>
   </header>
 
   <main class="container">
-    <!-- Filmes -->
+
+    <!-- FILMES -->
     <section id="view-filmes" class="view">
       <h2>Filmes</h2>
       <div id="filmes-list" class="card-grid"></div>
     </section>
 
-    <!-- Novo Filme -->
+    <!-- NOVO FILME -->
     <section id="view-novo-filme" class="view hidden">
       <h2>Novo Filme</h2>
       <form id="form-filme" class="form">
         <label>Título
           <input name="titulo" required />
         </label>
+
         <label>Gênero
           <input name="genero" />
         </label>
-        <label>Ano de Lançamento
-          <input type="number" name="anoLancamento" placeholder="Ano ex: 2023">
 
+        <label>Ano Lançamento
+          <input type="number" name="anoLancamento" />
         </label>
+
         <label>Quantidade Total
-          <input name="quantidadeTotal" type="number" min="1" value="1" required />
+          <input type="number" name="quantidadeTotal" min="1" required />
         </label>
-        <button type="submit" class="btn primary">Salvar Filme</button>
+
+        <button class="btn primary">Salvar Filme</button>
       </form>
     </section>
 
-   <!-- Nova Locacao -->
-<section id="view-nova-locacao" class="view hidden">
-  <h2>Registrar Locação</h2>
-  <form id="form-locacao" class="form">
-    <!-- Selecione o filme -->
-    <label>Filme
-      <select name="idFilme" id="select-filme" required></select>
-    </label>
+    <!-- NOVA LOCAÇÃO -->
+    <section id="view-nova-locacao" class="view hidden">
+      <h2>Registrar Locação</h2>
 
-    <!-- Selecione o cliente -->
-    <label>Cliente
-      <select name="idCliente" id="select-cliente" required></select>
-    </label>
+      <form id="form-locacao" class="form">
 
-    <label>Data Locação
-      <input name="dataLocacao" type="date" required />
-    </label>
+        <label>Filme
+          <select id="select-filme" name="idFilme" required></select>
+        </label>
 
-    <p id="qtd-filme-info" class="muted" style="margin-top: 4px;"></p>
+        <label>Nome do Cliente
+          <input type="text" id="cliente-nome" required placeholder="Nome completo" />
+        </label>
 
-    <label>Prazo (dias)
-      <input name="prazoDias" type="number" min="1" value="3" required />
-    </label>
+        <label>Telefone
+          <input type="text" id="cliente-telefone" required placeholder="(DDD) 00000-0000" />
+        </label>
 
-    <label>Valor diária (R$)
-      <input name="valorDiaria" type="number" min="0" step="0.01" value="5.00" required />
-    </label>
-
-    <button type="submit" class="btn primary">Registrar Locação</button>
-  </form>
-</section>
-
-
-        
-
-<p id="qtd-filme-info" class="muted" style="margin-top: 4px;"></p>
+        <label>Data de Locação
+          <input type="date" id="data-locacao" required />
+        </label>
 
         <label>Prazo (dias)
-          <input name="prazoDias" type="number" min="1" value="3" required />
+          <input type="number" id="prazo" min="1" value="3" required />
         </label>
+
         <label>Valor diária (R$)
-          <input name="valorDiaria" type="number" min="0" step="0.01" value="5.00" required />
+          <input type="number" id="valor-diaria" step="0.01" min="0" value="5.00" required />
         </label>
-        <button type="submit" class="btn primary">Registrar Locação</button>
+
+        <button class="btn primary">Registrar Locação</button>
       </form>
     </section>
 
-    <!-- Locações -->
+    <!-- LOCAÇÕES -->
     <section id="view-locacoes" class="view hidden">
       <h2>Locações</h2>
-      <div id="locacoes-list" class="card-list"></div>
+      <div id="locacoes-list"></div>
     </section>
 
     <div id="toast" class="toast hidden"></div>
