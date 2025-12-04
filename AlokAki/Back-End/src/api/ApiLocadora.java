@@ -5,12 +5,11 @@ import static spark.Spark.before;
 import static spark.Spark.get;
 import static spark.Spark.options;
 import static spark.Spark.post;
-
 import java.time.LocalDate;
 import java.util.Map;
-
 import com.google.gson.Gson;
-
+import util.LocalDateAdapter;
+import com.google.gson.GsonBuilder; 
 import dao.ClienteDAO;
 import dao.FilmeDAO;
 import dao.LocacaoDAO;
@@ -23,8 +22,12 @@ public class ApiLocadora {
     private static final ClienteDAO clienteDAO = new ClienteDAO();
     private static final FilmeDAO filmeDAO = new FilmeDAO();
     private static final LocacaoDAO locacaoDAO = new LocacaoDAO();
-    private static final Gson gson = new Gson();
+     private static final Gson gson = new GsonBuilder()
+        .registerTypeAdapter(LocalDate.class, new LocalDateAdapter())
+        .create();
 
+
+    @SuppressWarnings("unchecked")
     public static void iniciarRotas() {
 
         // CORS
@@ -78,40 +81,58 @@ public class ApiLocadora {
         // ======================
         get("/locacoes", (req, res) -> gson.toJson(locacaoDAO.buscarTodas()));
 
+        
         post("/locacoes", (req, res) -> {
-            Map<String, Object> body = gson.fromJson(req.body(), Map.class);
+            try {
+                Map<String, Object> body = gson.fromJson(req.body(), Map.class);
 
-            // Converte corretamente mesmo se vier "2.0"
-            int idFilme = ((Double) body.get("idFilme")).intValue();
-            int idCliente = ((Double) body.get("idCliente")).intValue();
-            int prazo = ((Double) body.get("prazoDias")).intValue();
-            double valorDiaria = ((Double) body.get("valorDiaria"));
+                // Conversão segura dos números
+                int idFilme = body.get("idFilme") instanceof Double 
+                    ? ((Double) body.get("idFilme")).intValue() 
+                    : (Integer) body.get("idFilme");
+                    
+                int idCliente = body.get("idCliente") instanceof Double 
+                    ? ((Double) body.get("idCliente")).intValue() 
+                    : (Integer) body.get("idCliente");
+                    
+                double valorDiaria = body.get("valorDiaria") instanceof Double
+                    ? (Double) body.get("valorDiaria")
+                    : ((Integer) body.get("valorDiaria")).doubleValue();
+                
+                LocalDate dataLocacao = LocalDate.parse(body.get("dataLocacao").toString());
+                LocalDate dataPrevista = LocalDate.parse(body.get("dataPrevistaDevolucao").toString());
 
-            LocalDate dataLocacao = LocalDate.parse(body.get("dataLocacao").toString());
-            LocalDate dataPrevista = dataLocacao.plusDays(prazo);
+                // Busca o filme
+                Filme filme = filmeDAO.buscarPorId(idFilme);
 
-            Filme filme = filmeDAO.buscarPorId(idFilme);
+                if (filme == null || filme.getQuantidadeDisponivel() <= 0) {
+                    res.status(400);
+                    return "{\"erro\":\"Filme indisponível\"}";
+                }
 
-            if (filme == null || filme.getQuantidadeDisponivel() <= 0) {
-                res.status(400);
-                return "{\"erro\":\"Filme indisponível\"}";
+                // Cria a locação
+                Locacao nova = new Locacao();
+                nova.setIdCliente(idCliente);
+                nova.setIdFilme(idFilme);
+                nova.setDataLocacao(dataLocacao);
+                nova.setDataPrevistaDevolucao(dataPrevista);
+                nova.setDataDevolucao(null);
+                nova.setValorDiaria(valorDiaria);
+                nova.setStatus(body.get("status").toString());
+
+                locacaoDAO.inserir(nova);
+
+                // Atualiza quantidade disponível
+                filmeDAO.atualizarQuantidade(idFilme, filme.getQuantidadeDisponivel() - 1);
+
+                res.status(201);
+                return gson.toJson(nova);
+                
+            } catch (Exception e) {
+                e.printStackTrace();
+                res.status(500);
+                return "{\"erro\":\"" + e.getMessage() + "\"}";
             }
-
-            Locacao nova = new Locacao();
-            nova.setIdCliente(idCliente);
-            nova.setIdFilme(idFilme);
-            nova.setDataLocacao(dataLocacao);
-            nova.setDataPrevistaDevolucao(dataPrevista);
-            nova.setDataDevolucao(null);
-            nova.setValorDiaria(valorDiaria);
-            nova.setStatus("ATIVA");
-
-            locacaoDAO.inserir(nova);
-
-            filmeDAO.atualizarQuantidade(idFilme, filme.getQuantidadeDisponivel() - 1);
-
-            res.status(201);
-            return gson.toJson(nova);
         });
 
         System.out.println("Rotas da API carregadas com sucesso!");
