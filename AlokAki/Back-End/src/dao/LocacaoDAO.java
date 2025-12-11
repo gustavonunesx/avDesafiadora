@@ -14,7 +14,6 @@ public class LocacaoDAO {
     // =====================================================================
     public List<Locacao> buscarTodas() {
         List<Locacao> lista = new ArrayList<>();
-
         String sql = "SELECT * FROM locacao";
 
         try (Connection conn = ConnectionFactory.getConnection();
@@ -90,7 +89,6 @@ public class LocacaoDAO {
     // INSERIR
     // =====================================================================
     public void inserir(Locacao l) {
-
         String sql = """
             INSERT INTO locacao (
                 idFilme, idCliente, dataLocacao,
@@ -129,10 +127,50 @@ public class LocacaoDAO {
     }
 
     // =====================================================================
-    // REGISTRAR DEVOLUÇÃO
+    // ATUALIZAR (método genérico)
+    // =====================================================================
+    public void atualizar(Locacao l) {
+        String sql = """
+            UPDATE locacao SET 
+                idFilme = ?,
+                idCliente = ?,
+                dataLocacao = ?,
+                dataPrevistaDevolucao = ?,
+                dataDevolucao = ?,
+                status = ?,
+                valorDiaria = ?
+            WHERE id = ?
+        """;
+
+        try (Connection conn = ConnectionFactory.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setInt(1, l.getIdFilme());
+            stmt.setInt(2, l.getIdCliente());
+            stmt.setDate(3, Date.valueOf(l.getDataLocacao()));
+            stmt.setDate(4, Date.valueOf(l.getDataPrevistaDevolucao()));
+
+            if (l.getDataDevolucao() != null) {
+                stmt.setDate(5, Date.valueOf(l.getDataDevolucao()));
+            } else {
+                stmt.setNull(5, Types.DATE);
+            }
+
+            stmt.setString(6, l.getStatus());
+            stmt.setDouble(7, l.getValorDiaria());
+            stmt.setInt(8, l.getId());
+
+            stmt.executeUpdate();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    // =====================================================================
+    // REGISTRAR DEVOLUÇÃO (método específico - mantido por compatibilidade)
     // =====================================================================
     public void registrarDevolucao(int id, java.time.LocalDate data, String status) {
-
         String sql = "UPDATE locacao SET dataDevolucao = ?, status = ? WHERE id = ?";
 
         try (Connection conn = ConnectionFactory.getConnection();
@@ -153,7 +191,6 @@ public class LocacaoDAO {
     // DELETAR
     // =====================================================================
     public void deletar(int id) {
-
         String sql = "DELETE FROM locacao WHERE id = ?";
 
         try (Connection conn = ConnectionFactory.getConnection();
