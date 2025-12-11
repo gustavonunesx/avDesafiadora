@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema Locadora</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .tabs {
+            display: flex;
+            background: #f5f5f5;
+            border-bottom: 2px solid #ddd;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 15px;
+            text-align: center;
+            cursor: pointer;
+            background: #f5f5f5;
+            border: none;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .tab:hover {
+            background: #e0e0e0;
+        }
+
+        .tab.active {
+            background: white;
+            color: #667eea;
+            border-bottom: 3px solid #667eea;
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .section {
+            display: none;
+        }
+
+        .section.active {
+            display: block;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border 0.3s;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s;
+            margin-right: 10px;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-success {
+            background: #10b981;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #059669;
+        }
+
+        .btn-danger {
+            background: #ef4444;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #dc2626;
+        }
+
+        .btn-warning {
+            background: #f59e0b;
+            color: white;
+        }
+
+        .btn-warning:hover {
+            background: #d97706;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        th {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+        }
+
+        td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        tr:hover {
+            background: #f9fafb;
+        }
+
+        .actions {
+            display: flex;
+            gap: 5px;
+        }
+
+        .message {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-weight: 500;
+        }
+
+        .message.success {
+            background: #d1fae5;
+            color: #065f46;
+            border-left: 4px solid #10b981;
+        }
+
+        .message.error {
+            background: #fee2e2;
+            color: #991b1b;
+            border-left: 4px solid #ef4444;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        @media (max-width: 768px) {
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎬 Sistema Locadora</h1>
+            <p>Gerenciamento de Filmes, Clientes e Locações</p>
+        </header>
+
+        <div class="tabs">
+            <button class="tab active" onclick="showTab('clientes')">👥 Clientes</button>
+            <button class="tab" onclick="showTab('filmes')">🎥 Filmes</button>
+            <button class="tab" onclick="showTab('locacoes')">📋 Locações</button>
+        </div>
+
+        <div class="content">
+            <!-- CLIENTES -->
+            <div id="clientes" class="section active">
+                <h2>Gerenciar Clientes</h2>
+                <div id="msgClientes"></div>
+                
+                <form id="formCliente" onsubmit="salvarCliente(event)">
+                    <input type="hidden" id="clienteId">
+                    <div class="form-group">
+                        <label>Nome *</label>
+                        <input type="text" id="clienteNome" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Telefone</label>
+                        <input type="text" id="clienteTelefone">
+                    </div>
+                    <button type="submit" class="btn btn-primary">💾 Salvar Cliente</button>
+                    <button type="button" class="btn btn-warning" onclick="limparFormCliente()">🔄 Limpar</button>
+                </form>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Nome</th>
+                            <th>Telefone</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="listaClientes"></tbody>
+                </table>
+            </div>
+
+            <!-- FILMES -->
+            <div id="filmes" class="section">
+                <h2>Gerenciar Filmes</h2>
+                <div id="msgFilmes"></div>
+                
+                <form id="formFilme" onsubmit="salvarFilme(event)">
+                    <input type="hidden" id="filmeId">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Título *</label>
+                            <input type="text" id="filmeTitulo" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Gênero *</label>
+                            <input type="text" id="filmeGenero" required>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Ano de Lançamento *</label>
+                            <input type="number" id="filmeAno" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Quantidade Total *</label>
+                            <input type="number" id="filmeQtdTotal" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Quantidade Disponível *</label>
+                        <input type="number" id="filmeQtdDisp" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">💾 Salvar Filme</button>
+                    <button type="button" class="btn btn-warning" onclick="limparFormFilme()">🔄 Limpar</button>
+                </form>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Título</th>
+                            <th>Gênero</th>
+                            <th>Ano</th>
+                            <th>Disponível</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="listaFilmes"></tbody>
+                </table>
+            </div>
+
+            <!-- LOCAÇÕES -->
+            <div id="locacoes" class="section">
+                <h2>Gerenciar Locações</h2>
+                <div id="msgLocacoes"></div>
+                
+                <form id="formLocacao" onsubmit="salvarLocacao(event)">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Cliente *</label>
+                            <select id="locacaoCliente" required></select>
+                        </div>
+                        <div class="form-group">
+                            <label>Filme *</label>
+                            <select id="locacaoFilme" required></select>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Data Locação *</label>
+                            <input type="date" id="locacaoData" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Data Prevista Devolução *</label>
+                            <input type="date" id="locacaoDataPrev" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Valor Diária *</label>
+                        <input type="number" step="0.01" id="locacaoValor" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">💾 Criar Locação</button>
+                    <button type="button" class="btn btn-warning" onclick="limparFormLocacao()">🔄 Limpar</button>
+                </form>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Cliente</th>
+                            <th>Filme</th>
+                            <th>Data Locação</th>
+                            <th>Prevista Devolução</th>
+                            <th>Status</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="listaLocacoes"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:4567';
+
+        // Funções de Tab
+        function showTab(tab) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+            
+            event.target.classList.add('active');
+            document.getElementById(tab).classList.add('active');
+
+            if (tab === 'clientes') carregarClientes();
+            if (tab === 'filmes') carregarFilmes();
+            if (tab === 'locacoes') carregarLocacoes();
+        }
+
+        function showMessage(elementId, message, type) {
+            const el = document.getElementById(elementId);
+            el.innerHTML = `<div class="message ${type}">${message}</div>`;
+            setTimeout(() => el.innerHTML = '', 5000);
+        }
+
+        // ==================== CLIENTES ====================
+        async function carregarClientes() {
+            try {
+                const response = await fetch(`${API_URL}/clientes`);
+                const clientes = await response.json();
+                
+                const tbody = document.getElementById('listaClientes');
+                tbody.innerHTML = clientes.map(c => `
+                    <tr>
+                        <td>${c.id}</td>
+                        <td>${c.nome}</td>
+                        <td>${c.telefone || '-'}</td>
+                        <td class="actions">
+                            <button class="btn btn-warning" onclick="editarCliente(${c.id})">✏️</button>
+                            <button class="btn btn-danger" onclick="deletarCliente(${c.id})">🗑️</button>
+                        </td>
+                    </tr>
+                `).join('');
+            } catch (error) {
+                showMessage('msgClientes', 'Erro ao carregar clientes', 'error');
+            }
+        }
+
+        async function salvarCliente(e) {
+            e.preventDefault();
+            const id = document.getElementById('clienteId').value;
+            const cliente = {
+                nome: document.getElementById('clienteNome').value,
+                telefone: document.getElementById('clienteTelefone').value
+            };
+
+            try {
+                const url = id ? `${API_URL}/clientes/${id}` : `${API_URL}/clientes`;
+                const method = id ? 'PUT' : 'POST';
+                
+                console.log('Salvando cliente:', method, url, cliente);
+                
+                const response = await fetch(url, {
+                    method,
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(cliente)
+                });
+
+                console.log('Response:', response.status);
+
+                if (response.ok) {
+                    showMessage('msgClientes', `Cliente ${id ? 'atualizado' : 'criado'} com sucesso!`, 'success');
+                    limparFormCliente();
+                    carregarClientes();
+                } else {
+                    const error = await response.text();
+                    console.error('Erro:', error);
+                    showMessage('msgClientes', 'Erro ao salvar cliente: ' + error, 'error');
+                }
+            } catch (error) {
+                console.error('Exception:', error);
+                showMessage('msgClientes', 'Erro ao salvar cliente: ' + error.message, 'error');
+            }
+        }
+
+        async function editarCliente(id) {
+            try {
+                const response = await fetch(`${API_URL}/clientes/${id}`);
+                const cliente = await response.json();
+                console.log('Cliente carregado:', cliente);
+                
+                document.getElementById('clienteId').value = cliente.id;
+                document.getElementById('clienteNome').value = cliente.nome;
+                document.getElementById('clienteTelefone').value = cliente.telefone || '';
+                
+                // Scroll para o formulário
+                document.getElementById('formCliente').scrollIntoView({ behavior: 'smooth' });
+            } catch (error) {
+                console.error('Erro ao buscar cliente:', error);
+                showMessage('msgClientes', 'Erro ao buscar cliente', 'error');
+            }
+        }
+
+        async function deletarCliente(id) {
+            if (!confirm('Deseja realmente deletar este cliente?')) return;
+            
+            try {
+                const response = await fetch(`${API_URL}/clientes/${id}`, {method: 'DELETE'});
+                console.log('Delete response:', response.status, response);
+                if (response.ok || response.status === 200) {
+                    showMessage('msgClientes', 'Cliente deletado com sucesso!', 'success');
+                    carregarClientes();
+                } else {
+                    const error = await response.text();
+                    console.error('Erro delete:', error);
+                    showMessage('msgClientes', 'Erro ao deletar cliente: ' + error, 'error');
+                }
+            } catch (error) {
+                console.error('Exception:', error);
+                showMessage('msgClientes', 'Erro ao deletar cliente: ' + error.message, 'error');
+            }
+        }
+
+        function limparFormCliente() {
+            document.getElementById('formCliente').reset();
+            document.getElementById('clienteId').value = '';
+        }
+
+        // ==================== FILMES ====================
+        async function carregarFilmes() {
+            try {
+                const response = await fetch(`${API_URL}/filmes`);
+                const filmes = await response.json();
+                
+                const tbody = document.getElementById('listaFilmes');
+                tbody.innerHTML = filmes.map(f => `
+                    <tr>
+                        <td>${f.id}</td>
+                        <td>${f.titulo}</td>
+                        <td>${f.genero}</td>
+                        <td>${f.anoLancamento}</td>
+                        <td>${f.quantidadeDisponivel}/${f.quantidadeTotal}</td>
+                        <td class="actions">
+                            <button class="btn btn-warning" onclick="editarFilme(${f.id})">✏️</button>
+                            <button class="btn btn-danger" onclick="deletarFilme(${f.id})">🗑️</button>
+                        </td>
+                    </tr>
+                `).join('');
+            } catch (error) {
+                showMessage('msgFilmes', 'Erro ao carregar filmes', 'error');
+            }
+        }
+
+        async function salvarFilme(e) {
+            e.preventDefault();
+            const id = document.getElementById('filmeId').value;
+            const filme = {
+                titulo: document.getElementById('filmeTitulo').value,
+                genero: document.getElementById('filmeGenero').value,
+                anoLancamento: parseInt(document.getElementById('filmeAno').value),
+                quantidadeTotal: parseInt(document.getElementById('filmeQtdTotal').value),
+                quantidadeDisponivel: parseInt(document.getElementById('filmeQtdDisp').value)
+            };
+
+            try {
+                const url = id ? `${API_URL}/filmes/${id}` : `${API_URL}/filmes`;
+                const method = id ? 'PUT' : 'POST';
+                
+                const response = await fetch(url, {
+                    method,
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(filme)
+                });
+
+                if (response.ok) {
+                    showMessage('msgFilmes', `Filme ${id ? 'atualizado' : 'criado'} com sucesso!`, 'success');
+                    limparFormFilme();
+                    carregarFilmes();
+                } else {
+                    showMessage('msgFilmes', 'Erro ao salvar filme', 'error');
+                }
+            } catch (error) {
+                showMessage('msgFilmes', 'Erro ao salvar filme', 'error');
+            }
+        }
+
+        async function editarFilme(id) {
+            try {
+                const response = await fetch(`${API_URL}/filmes/${id}`);
+                const filme = await response.json();
+                
+                document.getElementById('filmeId').value = filme.id;
+                document.getElementById('filmeTitulo').value = filme.titulo;
+                document.getElementById('filmeGenero').value = filme.genero;
+                document.getElementById('filmeAno').value = filme.anoLancamento;
+                document.getElementById('filmeQtdTotal').value = filme.quantidadeTotal;
+                document.getElementById('filmeQtdDisp').value = filme.quantidadeDisponivel;
+            } catch (error) {
+                showMessage('msgFilmes', 'Erro ao buscar filme', 'error');
+            }
+        }
+
+        async function deletarFilme(id) {
+            if (!confirm('Deseja realmente deletar este filme?')) return;
+            
+            try {
+                const response = await fetch(`${API_URL}/filmes/${id}`, {method: 'DELETE'});
+                if (response.ok) {
+                    showMessage('msgFilmes', 'Filme deletado com sucesso!', 'success');
+                    carregarFilmes();
+                } else {
+                    showMessage('msgFilmes', 'Erro ao deletar filme', 'error');
+                }
+            } catch (error) {
+                showMessage('msgFilmes', 'Erro ao deletar filme', 'error');
+            }
+        }
+
+        function limparFormFilme() {
+            document.getElementById('formFilme').reset();
+            document.getElementById('filmeId').value = '';
+        }
+
+        // ==================== LOCAÇÕES ====================
+        async function carregarLocacoes() {
+            await carregarSelectClientes();
+            await carregarSelectFilmes();
+            
+            try {
+                const response = await fetch(`${API_URL}/locacoes`);
+                const locacoes = await response.json();
+                
+                const tbody = document.getElementById('listaLocacoes');
+                tbody.innerHTML = locacoes.map(l => `
+                    <tr>
+                        <td>${l.id}</td>
+                        <td>Cliente #${l.idCliente}</td>
+                        <td>Filme #${l.idFilme}</td>
+                        <td>${l.dataLocacao}</td>
+                        <td>${l.dataPrevistaDevolucao}</td>
+                        <td>${l.status}</td>
+                        <td class="actions">
+                            ${l.dataDevolucao ? '' : `<button class="btn btn-success" onclick="devolverFilme(${l.id})">✅ Devolver</button>`}
+                            <button class="btn btn-danger" onclick="deletarLocacao(${l.id})">🗑️</button>
+                        </td>
+                    </tr>
+                `).join('');
+            } catch (error) {
+                showMessage('msgLocacoes', 'Erro ao carregar locações', 'error');
+            }
+        }
+
+        async function carregarSelectClientes() {
+            const response = await fetch(`${API_URL}/clientes`);
+            const clientes = await response.json();
+            const select = document.getElementById('locacaoCliente');
+            select.innerHTML = '<option value="">Selecione um cliente</option>' + 
+                clientes.map(c => `<option value="${c.id}">${c.nome}</option>`).join('');
+        }
+
+        async function carregarSelectFilmes() {
+            const response = await fetch(`${API_URL}/filmes`);
+            const filmes = await response.json();
+            const select = document.getElementById('locacaoFilme');
+            select.innerHTML = '<option value="">Selecione um filme</option>' + 
+                filmes.filter(f => f.quantidadeDisponivel > 0)
+                      .map(f => `<option value="${f.id}">${f.titulo} (${f.quantidadeDisponivel} disponíveis)</option>`).join('');
+        }
+
+        async function salvarLocacao(e) {
+            e.preventDefault();
+            const locacao = {
+                idCliente: parseInt(document.getElementById('locacaoCliente').value),
+                idFilme: parseInt(document.getElementById('locacaoFilme').value),
+                dataLocacao: document.getElementById('locacaoData').value,
+                dataPrevistaDevolucao: document.getElementById('locacaoDataPrev').value,
+                valorDiaria: parseFloat(document.getElementById('locacaoValor').value),
+                status: 'ativa'
+            };
+
+            try {
+                const response = await fetch(`${API_URL}/locacoes`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(locacao)
+                });
+
+                if (response.ok) {
+                    showMessage('msgLocacoes', 'Locação criada com sucesso!', 'success');
+                    limparFormLocacao();
+                    carregarLocacoes();
+                } else {
+                    const error = await response.json();
+                    showMessage('msgLocacoes', error.erro || 'Erro ao criar locação', 'error');
+                }
+            } catch (error) {
+                showMessage('msgLocacoes', 'Erro ao criar locação', 'error');
+            }
+        }
+
+        async function devolverFilme(id) {
+            if (!confirm('Confirmar devolução do filme?')) return;
+            
+            try {
+                const response = await fetch(`${API_URL}/locacoes/${id}/devolver`, {method: 'PUT'});
+                if (response.ok) {
+                    showMessage('msgLocacoes', 'Filme devolvido com sucesso!', 'success');
+                    carregarLocacoes();
+                } else {
+                    showMessage('msgLocacoes', 'Erro ao devolver filme', 'error');
+                }
+            } catch (error) {
+                showMessage('msgLocacoes', 'Erro ao devolver filme', 'error');
+            }
+        }
+
+        async function deletarLocacao(id) {
+            if (!confirm('Deseja realmente deletar esta locação?')) return;
+            
+            try {
+                const response = await fetch(`${API_URL}/locacoes/${id}`, {method: 'DELETE'});
+                if (response.ok) {
+                    showMessage('msgLocacoes', 'Locação deletada com sucesso!', 'success');
+                    carregarLocacoes();
+                } else {
+                    showMessage('msgLocacoes', 'Erro ao deletar locação', 'error');
+                }
+            } catch (error) {
+                showMessage('msgLocacoes', 'Erro ao deletar locação', 'error');
+            }
+        }
+
+        function limparFormLocacao() {
+            document.getElementById('formLocacao').reset();
+        }
+
+        // Carregar dados iniciais
+        carregarClientes();
+    </script>
+</body>
+</html>
